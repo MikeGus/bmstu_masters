@@ -1,17 +1,17 @@
-CXX = g++
+CXX = clang++
 CXX_VER = -std=c++2a
-CXXFLAGS = -Wall -Werror -pedantic -g0 -O3 -Wno-c++11-long-long $(CXX_VER)
-LFLAGS = -lconfig++
+CXXFLAGS = $(CXX_VER) -Wall -Werror -g0 -O3 -I/usr/local/opt/llvm/include
+LFLAGS = -lconfig++ -L/usr/local/opt/llvm/lib
 
-SOURCES = src/main.c src/arguments_parser.cpp
-HEADERS = $(SOURCES:.c=.h)
-OBJ = $(SOURCES:.c=.o)
+SOURCES = src/main.cpp src/arguments_parser.cpp src/feature.cpp src/sample.cpp src/classificator.cpp
+HEADERS = $(SOURCES:.cpp=.h)
+OBJ = $(SOURCES:.cpp=.o)
 
 PROG = classificator
 
 all: $(PROG)
 
-%.o: %.c
+%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 classificator: $(OBJ)

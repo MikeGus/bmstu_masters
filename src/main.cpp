@@ -1,4 +1,5 @@
 #include "arguments_parser.h"
+#include "classificator.h"
 #include "classificator_config.h"
 #include <iostream>
 
@@ -13,7 +14,11 @@ int main(int argc, char* argv[]) {
         std::cout << "Config successfully loaded!" << std::endl << "\tTrain data:\t" << config.TrainDataFilename << std::endl
             << "\tTrain labels:\t" << config.TrainLabelsFilename << std::endl << "\tTest data:\t" << config.TestDataFilename << std::endl
             << "\tTest labels:\t" << config.TestLabelsFilename << std::endl;
-    } catch (...) {}
+        TClassificator classificator{config};
+        std::cout << classificator;
+    } catch (const std::exception& ex) {
+        std::cerr << ex.what() << std::endl;
+    }
 
     return 0;
 }
