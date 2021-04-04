@@ -18,7 +18,7 @@ static std::string GetValuesAsString(std::istream& inputStream) {
 TFeature::TFeature(std::istream& inputStream) {
     inputStream >> Label;
     std::string valuesAsString = GetValuesAsString(inputStream);
-    Values = boost::dynamic_bitset<>(valuesAsString);
+    Values = std::make_shared<boost::dynamic_bitset<>>(valuesAsString);
 }
 
 std::ostream& operator<<(std::ostream& os, const TFeature& feature) {

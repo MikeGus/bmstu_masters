@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
             << "\tTrain labels:\t" << config.TrainLabelsFilename << std::endl << "\tTest data:\t" << config.TestDataFilename << std::endl
             << "\tTest labels:\t" << config.TestLabelsFilename << std::endl;
         TClassificator classificator{config};
-        std::cout << classificator;
+        classificator.FindBestRuleList();
     } catch (const std::exception& ex) {
         std::cerr << ex.what() << std::endl;
     }
