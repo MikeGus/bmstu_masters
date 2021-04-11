@@ -58,15 +58,17 @@ double TClassificator::CalculateAccuracy(TRuleList bestRuleList) const {
     boost::dynamic_bitset<> captured(sampleSize, 0);
     for (const auto& rule : bestRuleList.Rules) {
         const auto featureValues = TestData.Features.at(rule.Antecedent.Feature);
-        boost::dynamic_bitset<> newCaptured = rule.Antecedent.Value ? (captured | *featureValues) : (captured | (~ *featureValues));
-        boost::dynamic_bitset<> capturedByLast = newCaptured ^ captured;
+        const boost::dynamic_bitset<> newCaptured = rule.Antecedent.Value ? (captured | *featureValues) : (captured | (~ *featureValues));
+        const boost::dynamic_bitset<> capturedByLast = newCaptured ^ captured;
         classificatedLabels[rule.Label] |= capturedByLast;
         captured = std::move(newCaptured);
     }
     const size_t total = TestData.Labels.size() * sampleSize;
     size_t totalCorrect = 0;
     for (const auto& [label, labelValues] : TestData.Labels) {
-        totalCorrect += (*labelValues ^ classificatedLabels.at(label)).count() + ((~ *labelValues) ^ (~ classificatedLabels.at(label))).count();
+        const size_t truePositives = (*labelValues & classificatedLabels.at(label)).count();
+        const size_t trueNegatives = ((~ *labelValues) & (~ classificatedLabels.at(label))).count();
+        totalCorrect += truePositives + trueNegatives;
     }
 
     return static_cast<double>(totalCorrect) / total;
@@ -188,7 +190,6 @@ TRuleList TClassificator::FindBestRuleList() const {
     const double accuracy = CalculateAccuracy(result);
     std::cout << "============================" << std::endl;
     std::cout << "BEST RULE: " << std::endl << result.AsString(TrainData.FeaturesReverseMapping, TrainData.LabelsReverseMapping) << std::endl;
-    std::cout << "OBJECTIVE: " << minError << std::endl;
     std::cout << "ACCURACY: " <<  accuracy << std::endl;
     std::cout << "============================" << std::endl;
 
