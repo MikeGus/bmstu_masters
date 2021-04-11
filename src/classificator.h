@@ -10,9 +10,11 @@ public:
     explicit TClassificator(const TClassificatorConfig& cfg);
 
     TRuleList FindBestRuleList() const;
+    double CalculateInitialMinError() const;
 
     friend std::ostream& operator<<(std::ostream& os, const TClassificator& classificator);
 private:
-    TSample TrainData;
-    TSample TestData;
+    const TSample TrainData;
+    const TSample TestData;
+    const double RegularizationConstant;
 };

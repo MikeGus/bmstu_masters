@@ -44,5 +44,15 @@ TClassificatorConfig ParseConfig(std::string_view configFile) {
         throw;
     }
 
+    try {
+        config.lookupValue("regularization_constant", result.RegularizationConstant);
+    } catch (const libconfig::SettingNotFoundException& nfex) {
+        std::cerr << "No 'regularization_constant' section in config" << std::endl;
+        throw;
+    } catch (const libconfig::SettingTypeException& tex) {
+        std::cerr << "Type of 'regularization_constant' is not value" << std::endl;
+        throw;
+    }
+
     return result;
 }

@@ -7,4 +7,5 @@ struct TClassificatorConfig {
     std::string TrainLabelsFilename;
     std::string TestDataFilename;
     std::string TestLabelsFilename;
+    double RegularizationConstant;
 };

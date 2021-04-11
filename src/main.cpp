@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
         TClassificatorConfig config = ParseConfig(argv[1]);
         std::cout << "Config successfully loaded!" << std::endl << "\tTrain data:\t" << config.TrainDataFilename << std::endl
             << "\tTrain labels:\t" << config.TrainLabelsFilename << std::endl << "\tTest data:\t" << config.TestDataFilename << std::endl
-            << "\tTest labels:\t" << config.TestLabelsFilename << std::endl;
+            << "\tTest labels:\t" << config.TestLabelsFilename << std::endl << "\tRegularization constant: " << config.RegularizationConstant << std::endl;
         TClassificator classificator{config};
         classificator.FindBestRuleList();
     } catch (const std::exception& ex) {
