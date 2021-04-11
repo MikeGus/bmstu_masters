@@ -190,6 +190,7 @@ TRuleList TClassificator::FindBestRuleList() const {
     const double accuracy = CalculateAccuracy(result);
     std::cout << "============================" << std::endl;
     std::cout << "BEST RULE: " << std::endl << result.AsString(TrainData.FeaturesReverseMapping, TrainData.LabelsReverseMapping) << std::endl;
+    std::cout << "OBJECTIVE: " <<  minError << std::endl;
     std::cout << "ACCURACY: " <<  accuracy << std::endl;
     std::cout << "============================" << std::endl;
 

@@ -12,9 +12,9 @@ def get_new_dataset(dataset):
             new_dataset['Pclass:1'] = [1 if val == '1' else 0 for val in v]
             new_dataset['Pclass:2'] = [1 if val == '2' else 0 for val in v]
             new_dataset['Pclass:3'] = [1 if val == '3' else 0 for val in v]
-        elif k == 'Sex':
-            new_dataset['Sex:male'] = [1 if val == 'male' else 0 for val in v]
-            new_dataset['Sex:female'] = [1 if val == 'female' else 0 for val in v]
+        # elif k == 'Sex':
+        #     new_dataset['Sex:male'] = [1 if val == 'male' else 0 for val in v]
+        #    new_dataset['Sex:female'] = [1 if val == 'female' else 0 for val in v]
         elif k == 'Age':
             new_dataset['Age:0-10'] = [1 if (val and 0 <= float(val) < 10) else 0 for val in v]
             new_dataset['Age:10-16'] = [1 if (val and 10 <= float(val) < 16) else 0 for val in v]
@@ -53,6 +53,7 @@ def main():
     parser = argparse.ArgumentParser(description='Convert titanic features to binary.')
     parser.add_argument('-f', '--csv-file', help='csv features file', required=True)
     parser.add_argument('-l', '--label', help='which feature is considered label', required=True)
+    parser.add_argument('-o', '--out-file', help='output files name', required=True)
     args = parser.parse_args()
 
     dataset = {}
@@ -64,7 +65,7 @@ def main():
                     dataset[k] = []
                 dataset[k].append(v)
     new_dataset = get_new_dataset(dataset)
-    print_features_and_labels(new_dataset, args.label, args.csv_file.removesuffix('.csv'))
+    print_features_and_labels(new_dataset, args.label, args.out_file)
 
 if __name__ == '__main__':
     main()
