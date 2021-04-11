@@ -12,9 +12,9 @@ def get_new_dataset(dataset):
             new_dataset['Pclass:1'] = [1 if val == '1' else 0 for val in v]
             new_dataset['Pclass:2'] = [1 if val == '2' else 0 for val in v]
             new_dataset['Pclass:3'] = [1 if val == '3' else 0 for val in v]
-        # elif k == 'Sex':
-        #     new_dataset['Sex:male'] = [1 if val == 'male' else 0 for val in v]
-        #    new_dataset['Sex:female'] = [1 if val == 'female' else 0 for val in v]
+        elif k == 'Sex':
+            new_dataset['Sex:male'] = [1 if val == 'male' else 0 for val in v]
+            new_dataset['Sex:female'] = [1 if val == 'female' else 0 for val in v]
         elif k == 'Age':
             new_dataset['Age:0-10'] = [1 if (val and 0 <= float(val) < 10) else 0 for val in v]
             new_dataset['Age:10-16'] = [1 if (val and 10 <= float(val) < 16) else 0 for val in v]
