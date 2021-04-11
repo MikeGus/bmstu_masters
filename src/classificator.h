@@ -21,4 +21,5 @@ private:
     const TSample TrainData;
     const TSample TestData;
     const double RegularizationConstant;
+    const size_t MaxIterations;
 };

@@ -17,6 +17,7 @@ TClassificator::TClassificator(const TClassificatorConfig& cfg)
     : TrainData(cfg.TrainDataFilename, cfg.TrainLabelsFilename)
     , TestData(cfg.TestDataFilename, cfg.TestLabelsFilename)
     , RegularizationConstant(cfg.RegularizationConstant)
+    , MaxIterations(cfg.MaxIterations)
 {
 }
 
@@ -92,8 +93,7 @@ TRuleList TClassificator::FindBestRuleList() const {
     }
 
     size_t iterations = 0;
-    const size_t maxIterations = 10000;
-    while (not queue.empty() and ++iterations < maxIterations)  {
+    while (not queue.empty() and ++iterations < MaxIterations)  {
         auto queueIt = queue.begin();
         std::shared_ptr<TRuleNode> parent = *queueIt;
         queue.erase(queueIt);

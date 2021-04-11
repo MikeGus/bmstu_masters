@@ -8,4 +8,5 @@ struct TClassificatorConfig {
     std::string TestDataFilename;
     std::string TestLabelsFilename;
     double RegularizationConstant;
+    unsigned int MaxIterations;
 };

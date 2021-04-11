@@ -50,7 +50,17 @@ TClassificatorConfig ParseConfig(std::string_view configFile) {
         std::cerr << "No 'regularization_constant' section in config" << std::endl;
         throw;
     } catch (const libconfig::SettingTypeException& tex) {
-        std::cerr << "Type of 'regularization_constant' is not value" << std::endl;
+        std::cerr << "Type of 'regularization_constant' is not double" << std::endl;
+        throw;
+    }
+
+    try {
+        config.lookupValue("max_iterations", result.MaxIterations);
+    } catch (const libconfig::SettingNotFoundException& nfex) {
+        std::cerr << "No 'max_iterations' section in config" << std::endl;
+        throw;
+    } catch (const libconfig::SettingTypeException& tex) {
+        std::cerr << "Type of 'max_iterations' is not unsigned int" << std::endl;
         throw;
     }
 
