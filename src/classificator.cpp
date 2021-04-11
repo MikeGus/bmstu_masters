@@ -20,8 +20,16 @@ TClassificator::TClassificator(const TClassificatorConfig& cfg)
 {
 }
 
+size_t TClassificator::CalculateTrainSampleSize() const {
+    return TrainData.Features.empty() ? 0 : TrainData.FeaturesStorage.front().Values->size();
+}
+
+size_t TClassificator::CalculateTestSampleSize() const {
+    return TestData.Features.empty() ? 0 : TestData.FeaturesStorage.front().Values->size();
+}
+
 double TClassificator::CalculateInitialMinError() const {
-    const size_t sampleSize = TrainData.Features.empty() ? 0 : TrainData.FeaturesStorage.front().Values->size();
+    const size_t sampleSize = CalculateTrainSampleSize();
 
     size_t maxCount = 0;
     for (auto& [_, labelValues] : TrainData.Labels) {
@@ -31,10 +39,43 @@ double TClassificator::CalculateInitialMinError() const {
     return 1.0 - (static_cast<double>(maxCount) / sampleSize);
 }
 
+double TClassificator::CalculateAccuracy(TRuleList bestRuleList) const {
+    const size_t sampleSize = CalculateTestSampleSize();
+    for (auto& rule : bestRuleList.Rules) {
+        const auto ruleAntecedentFeature = TrainData.FeaturesReverseMapping.at(rule.Antecedent.Feature);
+        rule.Antecedent.Feature = TestData.FeaturesMapping.at(ruleAntecedentFeature);
+        const auto ruleLabel = TrainData.LabelsReverseMapping.at(rule.Label);
+        rule.Label = TestData.LabelsMapping.at(ruleLabel);
+    }
+    bestRuleList.DefaultLabel = TestData.LabelsMapping.at(TrainData.LabelsReverseMapping.at(bestRuleList.DefaultLabel));
+
+    std::unordered_map<int, boost::dynamic_bitset<>> classificatedLabels;
+    for (const auto& [label, _] : TestData.Labels) {
+        classificatedLabels[label] = boost::dynamic_bitset<>(sampleSize, 0);
+    }
+    classificatedLabels[bestRuleList.DefaultLabel].flip();
+
+    boost::dynamic_bitset<> captured(sampleSize, 0);
+    for (const auto& rule : bestRuleList.Rules) {
+        const auto featureValues = TestData.Features.at(rule.Antecedent.Feature);
+        boost::dynamic_bitset<> newCaptured = rule.Antecedent.Value ? (captured | *featureValues) : (captured | (~ *featureValues));
+        boost::dynamic_bitset<> capturedByLast = newCaptured ^ captured;
+        classificatedLabels[rule.Label] |= capturedByLast;
+        captured = std::move(newCaptured);
+    }
+    const size_t total = TestData.Labels.size() * sampleSize;
+    size_t totalCorrect = 0;
+    for (const auto& [label, labelValues] : TestData.Labels) {
+        totalCorrect += (*labelValues ^ classificatedLabels.at(label)).count() + ((~ *labelValues) ^ (~ classificatedLabels.at(label))).count();
+    }
+
+    return static_cast<double>(totalCorrect) / total;
+}
+
 TRuleList TClassificator::FindBestRuleList() const {
     TRuleList result;
 
-    const size_t sampleSize = TrainData.Features.empty() ? 0 : TrainData.FeaturesStorage.front().Values->size();
+    const size_t sampleSize = CalculateTrainSampleSize();
 
     TRuleTree cache(sampleSize);
     cache.Root->NotCaptured = ~cache.Root->Captured;
@@ -143,10 +184,12 @@ TRuleList TClassificator::FindBestRuleList() const {
             }
         }
     }
+
+    const double accuracy = CalculateAccuracy(result);
     std::cout << "============================" << std::endl;
     std::cout << "BEST RULE: " << std::endl << result.AsString(TrainData.FeaturesReverseMapping, TrainData.LabelsReverseMapping) << std::endl;
     std::cout << "OBJECTIVE: " << minError << std::endl;
-    std::cerr << "INITIAL OBJECTIVE: " << initialMinError << std::endl;
+    std::cout << "ACCURACY: " <<  accuracy << std::endl;
     std::cout << "============================" << std::endl;
 
     return result;

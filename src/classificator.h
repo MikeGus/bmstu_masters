@@ -10,10 +10,14 @@ public:
     explicit TClassificator(const TClassificatorConfig& cfg);
 
     TRuleList FindBestRuleList() const;
-    double CalculateInitialMinError() const;
 
     friend std::ostream& operator<<(std::ostream& os, const TClassificator& classificator);
 private:
+    size_t CalculateTrainSampleSize() const;
+    size_t CalculateTestSampleSize() const;
+    double CalculateInitialMinError() const;
+    double CalculateAccuracy(TRuleList bestRuleList) const;
+
     const TSample TrainData;
     const TSample TestData;
     const double RegularizationConstant;
