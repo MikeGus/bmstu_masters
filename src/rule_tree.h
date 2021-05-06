@@ -5,7 +5,7 @@
 #include <boost/dynamic_bitset.hpp>
 
 #include <memory>
-#include <unordered_set>
+#include <set>
 #include <vector>
 
 struct TRuleNode {
@@ -13,12 +13,14 @@ struct TRuleNode {
     TRuleNode(const TRuleNode& other) = default;
     TRuleNode(TRuleNode&& other) = delete;
 
+    void PruneParents(double minError);
+
     TRule Rule;
 
     boost::dynamic_bitset<> Captured;
     boost::dynamic_bitset<> NotCaptured;
 
-    std::unordered_set<int> UsedFeatures;
+    std::set<int> UsedFeatures;
 
     std::vector<std::shared_ptr<TRuleNode>> Children;
     std::weak_ptr<TRuleNode> Parent;

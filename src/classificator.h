@@ -4,6 +4,7 @@
 #include "rule_list.h"
 #include "sample.h"
 #include <iostream>
+#include <unordered_map>
 
 class TClassificator {
 public:
@@ -16,7 +17,7 @@ private:
     size_t CalculateTrainSampleSize() const;
     size_t CalculateTestSampleSize() const;
     double CalculateInitialMinError() const;
-    double CalculateAccuracy(TRuleList bestRuleList) const;
+    std::unordered_map<int, double> CalculateAccuracy(TRuleList bestRuleList) const;
 
     const TSample TrainData;
     const TSample TestData;

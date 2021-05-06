@@ -2,14 +2,16 @@
 #include "rule_tree.h"
 #include <cmath>
 #include <deque>
+#include <map>
+#include <unordered_map>
+#include <set>
 
-/* template<>
+template<>
 struct std::less<std::shared_ptr<TRuleNode>> {
     bool operator()(const std::shared_ptr<TRuleNode> a, const std::shared_ptr<TRuleNode> b) const {
-        return a->LowerBound * a->NotCaptured.count() < b->LowerBound * b->NotCaptured.count();
+        return a->LowerBound * (static_cast<float>(a->Captured.size()) / a->Captured.count()) < b->LowerBound * (static_cast<float>(b->Captured.size()) / b->Captured.count());
     }
 };
-*/
 
 using TRuleTestingPolicy = std::deque<std::shared_ptr<TRuleNode>>;
 
@@ -40,7 +42,7 @@ double TClassificator::CalculateInitialMinError() const {
     return 1.0 - (static_cast<double>(maxCount) / sampleSize);
 }
 
-double TClassificator::CalculateAccuracy(TRuleList bestRuleList) const {
+std::unordered_map<int, double> TClassificator::CalculateAccuracy(TRuleList bestRuleList) const {
     const size_t sampleSize = CalculateTestSampleSize();
     for (auto& rule : bestRuleList.Rules) {
         const auto ruleAntecedentFeature = TrainData.FeaturesReverseMapping.at(rule.Antecedent.Feature);
@@ -64,15 +66,19 @@ double TClassificator::CalculateAccuracy(TRuleList bestRuleList) const {
         classificatedLabels[rule.Label] |= capturedByLast;
         captured = std::move(newCaptured);
     }
-    const size_t total = TestData.Labels.size() * sampleSize;
-    size_t totalCorrect = 0;
+    std::unordered_map<int, size_t> totalCorrect(TestData.Labels.size());
     for (const auto& [label, labelValues] : TestData.Labels) {
         const size_t truePositives = (*labelValues & classificatedLabels.at(label)).count();
         const size_t trueNegatives = ((~ *labelValues) & (~ classificatedLabels.at(label))).count();
-        totalCorrect += truePositives + trueNegatives;
+        totalCorrect[label] += truePositives + trueNegatives;
     }
 
-    return static_cast<double>(totalCorrect) / total;
+    std::unordered_map<int, double> accuracies(TestData.Labels.size());
+    for (auto [label, correct] : totalCorrect) {
+        accuracies[label] = static_cast<double>(correct) / sampleSize;
+    }
+
+    return accuracies;
 }
 
 TRuleList TClassificator::FindBestRuleList() const {
@@ -91,6 +97,8 @@ TRuleList TClassificator::FindBestRuleList() const {
     for (auto& [feature, featureValues] : TrainData.Features) {
         notFeatures[feature] = ~ *featureValues;
     }
+
+    std::map<std::set<int>, double> permutationCache;
 
     size_t iterations = 0;
     while (not queue.empty() and ++iterations < MaxIterations)  {
@@ -136,9 +144,17 @@ TRuleList TClassificator::FindBestRuleList() const {
                     const double lowerBoundByChild = capturedByChildOnlyFraction * (1.0 -  labelFractionInCapturedByChildOnly) + RegularizationConstant;
                     double& lowerBound = child->LowerBound;
                     lowerBound = parent->LowerBound + lowerBoundByChild;
-
-                    if (lowerBound < minError) {
-                        queue.emplace_back(child);
+                    if (lowerBound + RegularizationConstant < minError) {
+                        if (not permutationCache.contains(child->UsedFeatures) or permutationCache.at(child->UsedFeatures) > lowerBound) {
+                            permutationCache[child->UsedFeatures] = lowerBound;
+                            queue.emplace_back(child);
+                        } else {
+                            continue;
+                        }
+                    } else {
+                        parent->Children.pop_back();
+                        child->PruneParents(minError);
+                        continue;
                     }
 
                     double& error = child->Error;
@@ -187,11 +203,14 @@ TRuleList TClassificator::FindBestRuleList() const {
         }
     }
 
-    const double accuracy = CalculateAccuracy(result);
+    const auto accuracy = CalculateAccuracy(result);
     std::cout << "============================" << std::endl;
     std::cout << "BEST RULE: " << std::endl << result.AsString(TrainData.FeaturesReverseMapping, TrainData.LabelsReverseMapping) << std::endl;
     std::cout << "OBJECTIVE: " <<  minError << std::endl;
-    std::cout << "ACCURACY: " <<  accuracy << std::endl;
+    for (auto& [label, _] : TestData.Labels) {
+        std::cout << "ACCURACY FOR CLASS " << TestData.LabelsReverseMapping.at(label) << ": " <<  accuracy.at(label) << std::endl;
+    }
+    std::cout << "TOTAL ITERATIONS: " << iterations << std::endl;
     std::cout << "============================" << std::endl;
 
     return result;
