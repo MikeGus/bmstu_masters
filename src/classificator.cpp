@@ -5,6 +5,7 @@
 #include <map>
 #include <unordered_map>
 #include <set>
+#include <ctime>
 
 template<>
 struct std::less<std::shared_ptr<TRuleNode>> {
@@ -100,8 +101,9 @@ TRuleList TClassificator::FindBestRuleList() const {
 
     std::map<std::set<int>, double> permutationCache;
 
-    size_t iterations = 0;
-    while (not queue.empty() and ++iterations < MaxIterations)  {
+    size_t currentIteration = 0;
+    clock_t now = clock();
+    while (not queue.empty() and ++currentIteration < MaxIterations)  {
         auto queueIt = queue.begin();
         std::shared_ptr<TRuleNode> parent = *queueIt;
         queue.erase(queueIt);
@@ -110,10 +112,16 @@ TRuleList TClassificator::FindBestRuleList() const {
             continue;
         }
 
+        if (currentIteration > 1 and permutationCache.at(parent->UsedFeatures) < parent->LowerBound) {
+            continue;
+        }
+
         for (auto& [feature, featureValues] : TrainData.Features) {
             if (parent->UsedFeatures.contains(feature)) {
                 continue;
             }
+
+            parent->Children.reserve(TrainData.Features.size());
             TRuleNode newNode(sampleSize);
             newNode.Rule.Antecedent.Feature = feature;
             newNode.Parent = parent;
@@ -124,9 +132,6 @@ TRuleList TClassificator::FindBestRuleList() const {
                 newNode.Rule.Antecedent.Value = featureValue;
                 const boost::dynamic_bitset<> capturedByChildOnly = featureValue ? (parent->NotCaptured & *featureValues) : (parent->NotCaptured & notFeatures.at(feature));
                 const size_t capturedByChildOnlyCount = capturedByChildOnly.count();
-                if (capturedByChildOnlyCount == 0) {
-                    continue;
-                }
                 const double capturedByChildOnlyFraction = capturedByChildOnlyCount / static_cast<double>(sampleSize);
                 if (capturedByChildOnlyFraction < RegularizationConstant) {
                     continue;
@@ -202,6 +207,7 @@ TRuleList TClassificator::FindBestRuleList() const {
             }
         }
     }
+    now = clock() - now;
 
     const auto accuracy = CalculateAccuracy(result);
     std::cout << "============================" << std::endl;
@@ -210,7 +216,8 @@ TRuleList TClassificator::FindBestRuleList() const {
     for (auto& [label, _] : TestData.Labels) {
         std::cout << "ACCURACY FOR CLASS " << TestData.LabelsReverseMapping.at(label) << ": " <<  accuracy.at(label) << std::endl;
     }
-    std::cout << "TOTAL ITERATIONS: " << iterations << std::endl;
+    std::cout << "TOTAL ITERATIONS: " << currentIteration << std::endl;
+    std::cout << "TOTAL TIME: " << now / (CLOCKS_PER_SEC / 1000) << std::endl;
     std::cout << "============================" << std::endl;
 
     return result;
