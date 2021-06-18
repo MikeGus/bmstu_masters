@@ -46,18 +46,17 @@ double TClassificator::CalculateInitialMinError() const {
 std::unordered_map<int, double> TClassificator::CalculateAccuracy(TRuleList bestRuleList) const {
     const size_t sampleSize = CalculateTestSampleSize();
     for (auto& rule : bestRuleList.Rules) {
-        const auto ruleAntecedentFeature = TrainData.FeaturesReverseMapping.at(rule.Antecedent.Feature);
+        const auto ruleAntecedentFeature = TestData.FeaturesReverseMapping.at(rule.Antecedent.Feature);
         rule.Antecedent.Feature = TestData.FeaturesMapping.at(ruleAntecedentFeature);
-        const auto ruleLabel = TrainData.LabelsReverseMapping.at(rule.Label);
+        const auto ruleLabel = TestData.LabelsReverseMapping.at(rule.Label);
         rule.Label = TestData.LabelsMapping.at(ruleLabel);
     }
-    bestRuleList.DefaultLabel = TestData.LabelsMapping.at(TrainData.LabelsReverseMapping.at(bestRuleList.DefaultLabel));
+    bestRuleList.DefaultLabel = TestData.LabelsMapping.at(TestData.LabelsReverseMapping.at(bestRuleList.DefaultLabel));
 
     std::unordered_map<int, boost::dynamic_bitset<>> classificatedLabels;
     for (const auto& [label, _] : TestData.Labels) {
         classificatedLabels[label] = boost::dynamic_bitset<>(sampleSize, 0);
     }
-    classificatedLabels[bestRuleList.DefaultLabel].flip();
 
     boost::dynamic_bitset<> captured(sampleSize, 0);
     for (const auto& rule : bestRuleList.Rules) {
@@ -65,8 +64,12 @@ std::unordered_map<int, double> TClassificator::CalculateAccuracy(TRuleList best
         const boost::dynamic_bitset<> newCaptured = rule.Antecedent.Value ? (captured | *featureValues) : (captured | (~ *featureValues));
         const boost::dynamic_bitset<> capturedByLast = newCaptured ^ captured;
         classificatedLabels[rule.Label] |= capturedByLast;
+        classificatedLabels[bestRuleList.DefaultLabel] |= capturedByLast;
         captured = std::move(newCaptured);
     }
+
+    classificatedLabels[bestRuleList.DefaultLabel].flip();
+
     std::unordered_map<int, size_t> totalCorrect(TestData.Labels.size());
     for (const auto& [label, labelValues] : TestData.Labels) {
         const size_t truePositives = (*labelValues & classificatedLabels.at(label)).count();
@@ -189,19 +192,6 @@ TRuleList TClassificator::FindBestRuleList() const {
                         for (std::shared_ptr<TRuleNode> currentNode = child; currentNode->Parent.lock(); currentNode = currentNode->Parent.lock()) {
                             result.Rules.emplace_front(currentNode->Rule);
                         }
-                        /*
-                        std::cout << "============================" << std::endl;
-                        std::cout << "New best rule: " << std::endl << result.AsString(TrainData.FeaturesReverseMapping, TrainData.LabelsReverseMapping) << std::endl;
-                        std::cout << "New min lb: " << lowerBound << std::endl;
-                        std::cout << "New child lb: " << lowerBoundByChild << std::endl;
-                        std::cout << "New parent lb: " << parent->LowerBound << std::endl;
-                        std::cout << "Captured by child only: " << capturedByChildOnlyFraction << std::endl;
-                        std::cout << "Label " << TrainData.LabelsReverseMapping.at(ruleLabel) << " fraction in captured by child only: " << labelFractionInCapturedByChildOnly << std::endl;
-                        std::cout << "Default label fraction: " << defaultLabelFractionInNonCaptured << std::endl;
-                        std::cout << "Not captured: " << notCapturedFraction << std::endl;
-                        std::cout << "New min error: " << minError << std::endl;
-                        std::cout << "============================" << std::endl;
-                        */
                     }
                 }
             }
@@ -210,20 +200,18 @@ TRuleList TClassificator::FindBestRuleList() const {
     now = clock() - now;
 
     const auto accuracy = CalculateAccuracy(result);
-    std::cout << "============================" << std::endl;
-    std::cout << "BEST RULE: " << std::endl << result.AsString(TrainData.FeaturesReverseMapping, TrainData.LabelsReverseMapping) << std::endl;
-    std::cout << "OBJECTIVE: " <<  minError << std::endl;
+    std::cout << "Наилучшее правило: " << std::endl << result.AsString(TrainData.FeaturesReverseMapping, TrainData.LabelsReverseMapping) << std::endl;
+    std::cout << std::endl << "Значение функции ошибки (на обучающей выборке): " <<  minError << std::endl;
+    std::cout << std::endl << "Точность классификации с разбиением по классам: " << std::endl;
     for (auto& [label, _] : TestData.Labels) {
-        std::cout << "ACCURACY FOR CLASS " << TestData.LabelsReverseMapping.at(label) << ": " <<  accuracy.at(label) << std::endl;
+        std::cout << "Класс " << TestData.LabelsReverseMapping.at(label) << ": " <<  accuracy.at(label) << std::endl;
     }
-    std::cout << "TOTAL ITERATIONS: " << currentIteration << std::endl;
-    std::cout << "TOTAL TIME: " << now / (CLOCKS_PER_SEC / 1000) << std::endl;
-    std::cout << "============================" << std::endl;
+    std::cout << std::endl << "Общее время (мс): " << now / (CLOCKS_PER_SEC / 1000) << std::endl;
 
     return result;
 }
 
 std::ostream& operator<<(std::ostream& os, const TClassificator& classificator) {
-    os << "Train sample:" << std::endl << classificator.TrainData << "Test sample:" << std::endl << classificator.TestData;
+    os << "Обучающая выборка:" << std::endl << classificator.TrainData << "Тестовая выборка:" << std::endl << classificator.TestData;
     return os;
 }
